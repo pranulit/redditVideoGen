@@ -1,4 +1,4 @@
-from moviepy.editor import *
+from moviepy import *
 import reddit, screenshot, time, subprocess, random, configparser, sys, math
 from os import listdir
 from os.path import isfile, join
