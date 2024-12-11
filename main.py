@@ -1,4 +1,5 @@
-from moviepy import *
+# from moviepy import *
+from moviepy import VideoFileClip, ImageClip, CompositeVideoClip, concatenate_videoclips
 import reddit, screenshot, time, subprocess, random, configparser, sys, math
 from os import listdir
 from os.path import isfile, join
@@ -28,18 +29,19 @@ def createVideo():
     bgFiles = [f for f in listdir(bgDir) if isfile(join(bgDir, f))]
     bgCount = len(bgFiles)
     bgIndex = random.randint(0, bgCount-1)
+    # backgroundVideo = VideoFileClip(
+    #     filename=f"{bgDir}/{bgPrefix}{bgIndex}.mp4", 
+    #     audio=False).subclip(0, script.getDuration())
     backgroundVideo = VideoFileClip(
-        filename=f"{bgDir}/{bgPrefix}{bgIndex}.mp4", 
-        audio=False).subclip(0, script.getDuration())
+    filename=f"{bgDir}/{bgPrefix}{bgIndex}.mp4", 
+    audio=False).subclipped(0, script.getDuration())
     w, h = backgroundVideo.size
 
     def __createClip(screenShotFile, audioClip, marginSize):
-        imageClip = ImageClip(
-            screenShotFile,
-            duration=audioClip.duration
-            ).set_position(("center", "center"))
-        imageClip = imageClip.resize(width=(w-marginSize))
-        videoClip = imageClip.set_audio(audioClip)
+        imageClip = (ImageClip(screenShotFile, duration=audioClip.duration)
+                .with_position(("center", "center")))
+        imageClip = imageClip.resized(width=(w - marginSize))
+        videoClip = imageClip.with_audio(audioClip)
         videoClip.fps = 1
         return videoClip
 
@@ -52,14 +54,14 @@ def createVideo():
         clips.append(__createClip(comment.screenShotFile, comment.audioClip, marginSize))
 
     # Merge clips into single track
-    contentOverlay = concatenate_videoclips(clips).set_position(("center", "center"))
+    contentOverlay = concatenate_videoclips(clips).with_position(("center", "center"))
 
     # Compose background/foreground
     final = CompositeVideoClip(
         clips=[backgroundVideo, contentOverlay], 
-        size=backgroundVideo.size).set_audio(contentOverlay.audio)
+        size=backgroundVideo.size).with_audio(contentOverlay.audio)
     final.duration = script.getDuration()
-    final.set_fps(backgroundVideo.fps)
+    final.with_fps(backgroundVideo.fps)
 
     # Write output to file
     print("Rendering final video...")
@@ -67,10 +69,11 @@ def createVideo():
     threads = config["Video"]["Threads"]
     outputFile = f"{outputDir}/{fileName}.mp4"
     final.write_videofile(
-        outputFile, 
-        codec = 'mpeg4',
-        threads = threads, 
-        bitrate = bitrate
+        outputFile,
+        codec="libx264",          # A common modern codec for video
+        audio_codec="aac",        # AAC is widely supported
+        threads=threads,
+        bitrate=bitrate
     )
     print(f"Video completed in {time.time() - startTime}")
 
@@ -88,3 +91,4 @@ def createVideo():
 
 if __name__ == "__main__":
     createVideo()
+
